@@ -1,0 +1,21 @@
+# Conda environment for reproducing the Chandra data
+#
+# Install:    conda env create -f environment.yaml
+# Activate:   conda activate ciao-4.14
+# Deactivate: conda deactivate
+
+name: ciao-4.14
+
+channels:
+  - conda-forge
+  - https://cxc.cfa.harvard.edu/conda/ciao
+
+dependencies:
+  - ciao
+  - sherpa
+  - ciao-contrib
+  - caldb_main
+  - marx
+  - astropy
+  - gammapy
+  - ds9
