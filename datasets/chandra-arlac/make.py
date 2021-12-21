@@ -107,15 +107,18 @@ def run_sherpa_fit():
     sau.group_counts(10)
     sau.notice(0.4, 6.0)
     sau.set_source(sau.bbody.bb1)
+    sau.bbody.bb1.ampl.val = 3e-2
+    sau.bbody.bb1.kT.val = 1
 
-    sau.fit()
+    # TODO: the fit doesn't really work right now...
+    #sau.fit()
     sau.set_analysis(1, "energy", "rate", factor=1)
     sau.plot_source()
 
     plt.xscale("log")
     plt.yscale("log")
     plt.savefig(path_spectrum / f"spectrum-{SOURCE_NAME}.png")
-    save_chart_spectrum(str(filename), elow=0.4, ehigh=6.0)
+    save_chart_spectrum(str(filename), elow=0.01, ehigh=10.0)
 
 
 def make_counts():
