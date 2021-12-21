@@ -1,3 +1,5 @@
 .ipynb_checkpoints
 .fits
 .fits.gz
+.idea
+.DS_Store
