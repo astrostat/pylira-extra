@@ -118,7 +118,7 @@ def run_sherpa_fit():
     plt.xscale("log")
     plt.yscale("log")
     plt.savefig(path_spectrum / f"spectrum-{SOURCE_NAME}.png")
-    save_chart_spectrum(str(filename), elow=0.01, ehigh=10.0)
+    save_chart_spectrum(str(filename), elow=0.1, ehigh=10.0)
 
 
 def make_counts():
@@ -145,12 +145,27 @@ def make_counts():
 
 def make_psf():
     """Make PSF image"""
+    # this requires running
+    # source /Users/adonath/software/mambaforge-intel/envs/ciao-4.14/marx-5.5.1/setup_marx.sh
     command = ["simulate_psf"]
-    command += [infile]
-    command += [outroot]
-    command += [ra]
-    command += [dec]
-    command += [spectrum]
+
+    filename = str(PATH_REPRO / f"hrcf{OBS_ID:05d}_repro_evt2.fits")
+    command += [f"infile={filename}"]
+    command += ["outroot=psf"]
+
+    center = ROI["center"]
+    command += [f"ra={center.icrs.ra.deg}"]
+    command += [f"dec={center.icrs.dec.deg}"]
+
+    command += ["simulator=file"]
+
+    #path_spectrum = PATH / "spectrum"
+    #filename = path_spectrum / f"source-flux-chart-{SOURCE_NAME}.dat"
+    #command += [f"spectrum={filename}"]
+
+    filename = "1385/psf/chart/HRMA_ra332.17008_dec45.74225_source-flux-chart-ArLac.dat_dithered_i0000_rays.fits"
+    command += [f"rayfile={filename}"]
+    command += ["mode=h"]
     execute_command(command=command)
 
 
