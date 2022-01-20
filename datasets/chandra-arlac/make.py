@@ -25,6 +25,8 @@ PATH = Path(f"{OBS_ID}")
 PATH_OUT = PATH / "lira-input"
 PATH_REPRO = PATH / "repro"
 
+PSF_IMAGE_SHAPE = (25, 25)
+PSF_N_ITER = 5
 
 INDEX_TABLE = Table.read(PATH / "oif.fits")
 INDEX_TABLE.add_index("MEMBER_CONTENT")
@@ -145,26 +147,44 @@ def make_counts():
 def make_psf():
     """Make PSF image"""
     # this requires running
+    outroot = f"{OBS_ID}/psf/psf"
+    filename_out = Path(outroot).parent / "psf.psf"
+
+    if filename_out.exists():
+        log.info(f"Skipping PSF image, {filename_out} already exists.")
+        return
+
     # source /Users/adonath/software/mambaforge-intel/envs/ciao-4.14/marx-5.5.1/setup_marx.sh
     command = ["simulate_psf"]
 
     filename = str(PATH_REPRO / f"hrcf{OBS_ID:05d}_repro_evt2.fits")
     command += [f"infile={filename}"]
-    command += [f"outroot={OBS_ID}/psf/psf"]
+    command += [f"outroot={outroot}"]
 
     center = ROI["center"]
     command += [f"ra={center.icrs.ra.deg}"]
     command += [f"dec={center.icrs.dec.deg}"]
 
-    command += ["simulator=file"]
+    command += ["simulator=marx"]
+    command += ["numsig=1"]
+    command += [f"minsize={PSF_IMAGE_SHAPE[0]}"]
 
-    #path_spectrum = PATH / "spectrum"
-    #filename = path_spectrum / f"source-flux-chart-{SOURCE_NAME}.dat"
-    #command += [f"spectrum={filename}"]
+    path_spectrum = PATH / "spectrum"
+    filename = path_spectrum / f"source-flux-chart-{SOURCE_NAME}.dat"
+    command += [f"spectrum={filename}"]
+    command += [f"numiter={PSF_N_ITER}"]
 
-    filename = "1385/psf/chart/HRMA_ra332.17008_dec45.74225_source-flux-chart-ArLac.dat_dithered_i0000_rays.fits"
-    command += [f"rayfile={filename}"]
+    #filenames = [str(_) for _ in Path("1385/psf/chart/").glob("HRMA_*.fits")]
+    #command += [f"rayfile={','.join(filenames)}"]
     command += ["mode=h"]
+    execute_command(command=command)
+
+
+def copy_psf():
+    command = ["cp", f"{OBS_ID}/psf/psf.psf", f"{OBS_ID}/lira-input"]
+    execute_command(command=command)
+
+    command = ["mv", f"{OBS_ID}/lira-input/psf.psf", f"{OBS_ID}/lira-input/psf.fits"]
     execute_command(command=command)
 
 
@@ -187,5 +207,6 @@ if __name__ == "__main__":
     run_sherpa_fit()
     make_counts()
     make_psf()
+    copy_psf()
     make_background()
     make_exposure()
