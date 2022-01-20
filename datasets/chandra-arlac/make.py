@@ -44,7 +44,6 @@ def get_filename(member_content):
     return PATH / filename
 
 
-
 def download_data():
     """Download data"""
     if not PATH.exists():
@@ -151,7 +150,7 @@ def make_psf():
 
     filename = str(PATH_REPRO / f"hrcf{OBS_ID:05d}_repro_evt2.fits")
     command += [f"infile={filename}"]
-    command += ["outroot=psf"]
+    command += [f"outroot={OBS_ID}/psf/psf"]
 
     center = ROI["center"]
     command += [f"ra={center.icrs.ra.deg}"]
