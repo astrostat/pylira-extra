@@ -3,9 +3,12 @@ import logging
 import subprocess
 from pathlib import Path
 import matplotlib.pylab as plt
+import numpy as np
 from astropy.coordinates import SkyCoord
 from astropy.table import Table
 from gammapy.maps import Map
+from astropy import units as u
+from regions import CircleAnnulusSkyRegion
 import sherpa.astro.ui as sau
 from sherpa_contrib.chart import save_chart_spectrum
 
@@ -132,16 +135,26 @@ def make_counts():
         log.info(f"Skipping counts image, {filename_out} already exists.")
         return
 
-    filename = get_filename("HIRESIMG")
-    log.info(f"Reading {filename}")
+    command = ["dmcopy"]
 
-    counts = Map.read(filename)
+    filename = get_filename("EVT2")
 
-    width = counts.geom.pixel_scales * ROI["npix"]
-    cutout = counts.cutout(position=ROI["center"], width=width)
+    command += [f"infile={filename}[EVENTS][bin x=16203:16331:1, y=16375:16503:1]"]
+    command += [f"outfile={PATH_OUT / 'counts.fits'}"]
+    command += ["option=image"]
 
-    log.info(f"Reading {filename_out}")
-    cutout.write(filename_out)
+    execute_command(command=command)
+
+    #filename = get_filename("HIRESIMG")
+    #log.info(f"Reading {filename}")
+
+    #counts = Map.read(filename)
+
+    #width = counts.geom.pixel_scales * ROI["npix"]
+    #cutout = counts.cutout(position=ROI["center"], width=width)
+
+    #log.info(f"Reading {filename_out}")
+    #cutout.write(filename_out)
 
 
 def make_psf():
@@ -154,7 +167,6 @@ def make_psf():
         log.info(f"Skipping PSF image, {filename_out} already exists.")
         return
 
-    # source /Users/adonath/software/mambaforge-intel/envs/ciao-4.14/marx-5.5.1/setup_marx.sh
     command = ["simulate_psf"]
 
     filename = str(PATH_REPRO / f"hrcf{OBS_ID:05d}_repro_evt2.fits")
@@ -166,7 +178,7 @@ def make_psf():
     command += [f"dec={center.icrs.dec.deg}"]
 
     command += ["simulator=marx"]
-    command += ["numsig=1"]
+    command += ["numsig=7"]
     command += [f"minsize={PSF_IMAGE_SHAPE[0]}"]
 
     path_spectrum = PATH / "spectrum"
@@ -181,17 +193,38 @@ def make_psf():
 
 
 def copy_psf():
-    command = ["cp", f"{OBS_ID}/psf/psf.psf", f"{OBS_ID}/lira-input"]
+    command = ["cp", f"{OBS_ID}/psf/psf.psf", f"{PATH_OUT}"]
     execute_command(command=command)
 
-    command = ["mv", f"{OBS_ID}/lira-input/psf.psf", f"{OBS_ID}/lira-input/psf.fits"]
+    command = ["mv", f"{OBS_ID}/lira-input/psf.psf", f"{PATH_OUT}/psf.fits"]
     execute_command(command=command)
 
 
 def make_background():
     """Make background image"""
-    # TODO:
-    pass
+    filename_out = PATH_OUT / "background.fits"
+
+    if filename_out.exists():
+        log.info(f"Skipping background image, {filename_out} already exists.")
+        return
+
+    filename = PATH_OUT / "counts.fits"
+    log.info(f"Reading {filename}")
+    counts = Map.read(filename)
+
+    background = Map.from_geom(counts.geom)
+
+    region = CircleAnnulusSkyRegion(
+        center=ROI["center"],
+        inner_radius=5 * u.arcsec,
+        outer_radius=8 * u.arcsec,
+    )
+    mean_bkg = background.to_region_nd_map(region, func=np.mean)
+    background.data[...] = mean_bkg.data
+
+    log.info(f"Writing {filename_out}")
+    background.write(filename_out, overwrite=True)
+
 
 
 def make_exposure():
